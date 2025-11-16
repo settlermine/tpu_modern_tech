@@ -1,0 +1,95 @@
+{% extends 'videos/base.html' %}
+{% load video_tags %}
+
+{% block title %}Список видео - Видеотека{% endblock %}
+
+{% block content %}
+<h1>Видеотека</h1>
+
+{% if messages %}
+<div class="messages">
+    {% for message in messages %}
+    <div class="message message-{{ message.tags|default:'error' }}">
+        {{ message }}
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+{% if not user.is_authenticated %}
+<div class="alert">
+    Для оценки видео необходимо <a href="{% url 'videos:login' %}">войти</a>
+</div>
+{% else %}
+<div class="user-info">
+    <span>Вы вошли как <strong>{{ user.username }}</strong></span>
+    <form method="post" action="{% url 'videos:logout' %}" class="inline-form">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-secondary">
+            Выйти
+        </button>
+    </form>
+</div>
+{% endif %}
+
+<div class="video-grid">
+    {% for video in videos %}
+    <div class="video-card">
+        <a href="{{ video.source_url }}" target="_blank">
+            <img src="{{ video.preview_image_url }}"
+                 alt="{{ video.title }}"
+                 class="video-preview">
+        </a>
+        <div class="video-info">
+            <div class="video-title">{{ video.title }}</div>
+            <div class="video-actions">
+                {% if user.is_authenticated %}
+                <form method="post" action="{% url 'videos:like_video' video.id %}" class="inline-form">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-like {% if user_ratings|get_item:video.id == 'like' %}btn-active{% endif %}">
+                        👍 <span class="rating-count">{{ video.likes_count }}</span>
+                    </button>
+                </form>
+                <form method="post" action="{% url 'videos:dislike_video' video.id %}" class="inline-form">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-dislike {% if user_ratings|get_item:video.id == 'dislike' %}btn-active{% endif %}">
+                        👎 <span class="rating-count">{{ video.dislikes_count }}</span>
+                    </button>
+                </form>
+                {% else %}
+                <div class="video-actions">
+                    <span class="btn btn-like btn-disabled">
+                        👍 <span class="rating-count">{{ video.likes_count }}</span>
+                    </span>
+                    <span class="btn btn-dislike btn-disabled">
+                        👎 <span class="rating-count">{{ video.dislikes_count }}</span>
+                    </span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <p>Видео не найдены.</p>
+    {% endfor %}
+</div>
+
+{% if page_obj.has_other_pages %}
+<div class="pagination">
+    {% if page_obj.has_previous %}
+        <a href="?page=1">&laquo; первая</a>
+        <a href="?page={{ page_obj.previous_page_number }}">предыдущая</a>
+    {% endif %}
+
+    <span class="current">
+        Страница {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}
+    </span>
+
+    {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}">следующая</a>
+        <a href="?page={{ page_obj.paginator.num_pages }}">последняя &raquo;</a>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}
+
