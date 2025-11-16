@@ -2,6 +2,32 @@ from django.db import models
 from django.contrib.auth.models import User
 
 
+class Topic(models.Model):
+    """Модель для хранения тем видео"""
+    name = models.CharField(
+        max_length=100,
+        unique=True,
+        verbose_name='Название темы',
+    )
+    slug = models.SlugField(
+        max_length=100,
+        unique=True,
+        verbose_name='URL-слаг',
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='Дата создания',
+    )
+
+    class Meta:
+        verbose_name = 'Тема'
+        verbose_name_plural = 'Темы'
+        ordering = ['name']
+
+    def __str__(self) -> str:
+        return self.name
+
+
 class Video(models.Model):
     """Модель для хранения информации о видео"""
     title = models.CharField(
@@ -16,11 +42,17 @@ class Video(models.Model):
     )
     is_hidden = models.BooleanField(
         default=False,
-        verbose_name='Скрыто'
+        verbose_name='Скрыто',
+    )
+    topics = models.ManyToManyField(
+        Topic,
+        related_name='videos',
+        blank=True,
+        verbose_name='Темы',
     )
     created_at = models.DateTimeField(
         auto_now_add=True,
-        verbose_name='Дата создания'
+        verbose_name='Дата создания',
     )
     updated_at = models.DateTimeField(
         auto_now=True,

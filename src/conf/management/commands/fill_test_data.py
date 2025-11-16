@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand
 from django.contrib.auth.models import User
-from videos.models import Video, VideoRating
+from videos.models import Video, VideoRating, Topic
 import random
 from typing import Any
 
@@ -19,6 +19,7 @@ class Command(BaseCommand):
         self.stdout.write('Очистка старых данных...')
         VideoRating.objects.all().delete()
         Video.objects.all().delete()
+        Topic.objects.all().delete()
 
         # Удаляем только тестовых пользователей (с префиксом test_)
         test_users = User.objects.filter(username__startswith='test_')
@@ -52,6 +53,48 @@ class Command(BaseCommand):
             created_users.append(user)
             self.stdout.write(
                 self.style.SUCCESS(f'Создан пользователь: {user.username}')
+            )
+
+        self.stdout.write('')
+
+        # Создание тестовых тем
+        self.stdout.write('Создание тестовых тем...')
+        topics_data = [
+            {
+                'name': 'Развлечения',
+                'slug': 'razvlecheniya',
+            },
+            {
+                'name': 'Образование',
+                'slug': 'obrazovanie',
+            },
+            {
+                'name': 'Технологии',
+                'slug': 'tekhnologii',
+            },
+            {
+                'name': 'Новости',
+                'slug': 'novosti',
+            },
+            {
+                'name': 'Спорт',
+                'slug': 'sport',
+            },
+            {
+                'name': 'Документальные',
+                'slug': 'dokumentalnye',
+            },
+        ]
+
+        created_topics = {}
+        for topic_data in topics_data:
+            topic = Topic.objects.create(
+                name=topic_data['name'],
+                slug=topic_data['slug'],
+            )
+            created_topics[topic_data['slug']] = topic
+            self.stdout.write(
+                self.style.SUCCESS(f'Создана тема: {topic.name}')
             )
 
         self.stdout.write('')
@@ -248,6 +291,39 @@ class Command(BaseCommand):
 
         self.stdout.write('')
 
+        # Назначение тем видео
+        self.stdout.write('Назначение тем видео...')
+        # Маппинг видео на темы (по индексу в списке)
+        # Некоторые видео имеют несколько тем
+        video_topics_mapping = [
+            ['razvlecheniya', 'novosti'],  # Экстрасенсы
+            ['razvlecheniya'],  # Ставка на любовь
+            ['dokumentalnye', 'obrazovanie'],  # Выживалити
+            ['novosti', 'razvlecheniya'],  # Утро ТНТ
+            ['obrazovanie', 'tekhnologii'],  # Максим Перлин
+            ['tekhnologii', 'obrazovanie'],  # Как удалить Google
+            ['razvlecheniya'],  # Большие девочки
+            ['dokumentalnye'],  # В темноте
+            ['dokumentalnye', 'razvlecheniya'],  # Остров сокровищ
+            ['dokumentalnye', 'obrazovanie'],  # Попутчик
+            ['razvlecheniya'],  # Ставка на любовь 6
+            ['razvlecheniya', 'novosti'],  # Экстрасенсы 26
+            ['tekhnologii', 'obrazovanie'],  # Как удалить Касперский
+        ]
+
+        for idx, video in enumerate(created_videos):
+            topic_slugs = video_topics_mapping[idx]
+            for topic_slug in topic_slugs:
+                if topic_slug in created_topics:
+                    video.topics.add(created_topics[topic_slug])
+            self.stdout.write(
+                self.style.SUCCESS(
+                    f'Назначены темы для: {video.title}'
+                )
+            )
+
+        self.stdout.write('')
+
         # Создание лайков/дизлайков
         self.stdout.write('Создание лайков и дизлайков...')
         ratings_created = 0
@@ -279,6 +355,7 @@ class Command(BaseCommand):
             self.style.SUCCESS(
                 f'\nГотово! Создано:\n'
                 f'  - Пользователей: {len(created_users)}\n'
+                f'  - Тем: {len(created_topics)}\n'
                 f'  - Видео: {len(created_videos)}\n'
                 f'  - Оценок: {ratings_created}\n'
             )

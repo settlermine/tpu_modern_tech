@@ -3,17 +3,37 @@ from django.shortcuts import (
     get_object_or_404,
     redirect,
 )
+from django.urls import reverse
 from django.core.paginator import Paginator
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import LoginView
 from django.http import HttpRequest, HttpResponse
 from django.conf import settings
-from videos.models import Video, VideoRating
+from videos.models import Video, VideoRating, Topic
 
 
 def video_list(request: HttpRequest) -> HttpResponse:
-    """Отображает список видео с постраничным просмотром"""
+    """
+    Отображает список видео с постраничным просмотром
+    и фильтрацией по темам
+    """
+    # Получаем параметры фильтрации по темам (может быть несколько)
+    topic_slugs = request.GET.getlist('topic')
+    active_topics = []
+
+    # Базовый queryset - только не скрытые видео
     videos = Video.objects.filter(is_hidden=False).order_by('-created_at')
+
+    # Если выбраны темы - фильтруем по ним
+    if topic_slugs:
+        # Получаем объекты тем по slug
+        topics_queryset = Topic.objects.filter(slug__in=topic_slugs)
+        active_topics = list(topics_queryset)
+
+        # Фильтруем видео: показываем те, у которых есть хотя бы одна
+        # из выбранных тем
+        if active_topics:
+            videos = videos.filter(topics__in=active_topics).distinct()
 
     paginator = Paginator(
         videos,
@@ -35,10 +55,16 @@ def video_list(request: HttpRequest) -> HttpResponse:
             for rating in ratings
         }
 
+    # Получаем все темы для отображения фильтров
+    all_topics = Topic.objects.all().order_by('name')
+
     context = {
         'page_obj': page_obj,
         'videos': page_obj,
         'user_ratings': user_ratings,
+        'topics': all_topics,
+        'active_topics': active_topics,
+        'active_topic_slugs': topic_slugs,
     }
 
     return render(
@@ -81,6 +107,11 @@ def like_video(
             rating_type='like',
         )
 
+    # Сохраняем параметры фильтрации по темам при редиректе
+    topic_slugs = request.GET.getlist('topic')
+    if topic_slugs:
+        topic_params = '&'.join([f'topic={slug}' for slug in topic_slugs])
+        return redirect(f'{reverse("videos:video_list")}?{topic_params}')
     return redirect('videos:video_list')
 
 
@@ -117,6 +148,11 @@ def dislike_video(
             rating_type='dislike',
         )
 
+    # Сохраняем параметры фильтрации по темам при редиректе
+    topic_slugs = request.GET.getlist('topic')
+    if topic_slugs:
+        topic_params = '&'.join([f'topic={slug}' for slug in topic_slugs])
+        return redirect(f'{reverse("videos:video_list")}?{topic_params}')
     return redirect('videos:video_list')
 
 

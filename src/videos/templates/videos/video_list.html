@@ -32,6 +32,36 @@
 </div>
 {% endif %}
 
+<div class="topic-filters">
+    <h2>Фильтр по темам:</h2>
+    <div class="topic-buttons">
+        {% for topic in topics %}
+        {% if topic.slug in active_topic_slugs %}
+        <form method="get" action="{% url 'videos:video_list' %}" class="inline-form">
+            {% for slug in active_topic_slugs %}
+            {% if slug != topic.slug %}
+            <input type="hidden" name="topic" value="{{ slug }}">
+            {% endif %}
+            {% endfor %}
+            <button type="submit" class="topic-btn topic-btn-active">
+                {{ topic.name }}
+            </button>
+        </form>
+        {% else %}
+        <form method="get" action="{% url 'videos:video_list' %}" class="inline-form">
+            {% for slug in active_topic_slugs %}
+            <input type="hidden" name="topic" value="{{ slug }}">
+            {% endfor %}
+            <input type="hidden" name="topic" value="{{ topic.slug }}">
+            <button type="submit" class="topic-btn">
+                {{ topic.name }}
+            </button>
+        </form>
+        {% endif %}
+        {% endfor %}
+    </div>
+</div>
+
 <div class="video-grid">
     {% for video in videos %}
     <div class="video-card">
@@ -77,8 +107,8 @@
 {% if page_obj.has_other_pages %}
 <div class="pagination">
     {% if page_obj.has_previous %}
-        <a href="?page=1">&laquo; первая</a>
-        <a href="?page={{ page_obj.previous_page_number }}">предыдущая</a>
+        <a href="?{% for slug in active_topic_slugs %}topic={{ slug }}&{% endfor %}page=1">&laquo; первая</a>
+        <a href="?{% for slug in active_topic_slugs %}topic={{ slug }}&{% endfor %}page={{ page_obj.previous_page_number }}">предыдущая</a>
     {% endif %}
 
     <span class="current">
@@ -86,8 +116,8 @@
     </span>
 
     {% if page_obj.has_next %}
-        <a href="?page={{ page_obj.next_page_number }}">следующая</a>
-        <a href="?page={{ page_obj.paginator.num_pages }}">последняя &raquo;</a>
+        <a href="?{% for slug in active_topic_slugs %}topic={{ slug }}&{% endfor %}page={{ page_obj.next_page_number }}">следующая</a>
+        <a href="?{% for slug in active_topic_slugs %}topic={{ slug }}&{% endfor %}page={{ page_obj.paginator.num_pages }}">последняя &raquo;</a>
     {% endif %}
 </div>
 {% endif %}
