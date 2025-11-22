@@ -6,9 +6,9 @@ from django.shortcuts import (
 from django.urls import reverse
 from django.core.paginator import Paginator
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.views import LoginView
 from django.http import HttpRequest, HttpResponse
 from django.conf import settings
+from conf.logger import log_user_action
 from videos.models import Video, VideoRating, Topic
 
 
@@ -95,16 +95,28 @@ def like_video(
         # Если уже есть лайк - удаляем (снимаем лайк)
         if rating.rating_type == 'like':
             rating.delete()
+            log_user_action(
+                request.user,
+                f'Снял лайк с видео "{video.title}"',
+            )
         # Если есть дизлайк - меняем на лайк
         else:
             rating.rating_type = 'like'
             rating.save()
+            log_user_action(
+                request.user,
+                f'Изменил дизлайк на лайк для видео "{video.title}"',
+            )
     except VideoRating.DoesNotExist:
         # Создаем новый лайк
         VideoRating.objects.create(
             video=video,
             user=request.user,
             rating_type='like',
+        )
+        log_user_action(
+            request.user,
+            f'Поставил лайк видео "{video.title}"',
         )
 
     # Сохраняем параметры фильтрации по темам при редиректе
@@ -136,16 +148,28 @@ def dislike_video(
         # Если уже есть дизлайк - удаляем (снимаем дизлайк)
         if rating.rating_type == 'dislike':
             rating.delete()
+            log_user_action(
+                request.user,
+                f'Снял дизлайк с видео "{video.title}"',
+            )
         # Если есть лайк - меняем на дизлайк
         else:
             rating.rating_type = 'dislike'
             rating.save()
+            log_user_action(
+                request.user,
+                f'Изменил лайк на дизлайк для видео "{video.title}"',
+            )
     except VideoRating.DoesNotExist:
         # Создаем новый дизлайк
         VideoRating.objects.create(
             video=video,
             user=request.user,
             rating_type='dislike',
+        )
+        log_user_action(
+            request.user,
+            f'Поставил дизлайк видео "{video.title}"',
         )
 
     # Сохраняем параметры фильтрации по темам при редиректе
@@ -154,12 +178,3 @@ def dislike_video(
         topic_params = '&'.join([f'topic={slug}' for slug in topic_slugs])
         return redirect(f'{reverse("videos:video_list")}?{topic_params}')
     return redirect('videos:video_list')
-
-
-class CustomLoginView(LoginView):
-    """Кастомная страница входа"""
-    template_name = 'videos/login.html'
-    redirect_authenticated_user = True
-
-    def get_success_url(self) -> str:
-        return '/'

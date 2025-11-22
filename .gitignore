@@ -29,6 +29,7 @@ db.sqlite3-journal
 src/db.sqlite3
 /media
 /staticfiles
+staticfiles/
 /static
 
 # Virtual environments
@@ -58,4 +59,8 @@ Thumbs.db
 
 # Reports templates
 reports/template*
+
+# Logs
+logs/*
+!logs/.gitkeep
 

@@ -117,7 +117,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = 'static/'
-STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATIC_ROOT = BASE_DIR.parent / 'staticfiles'
 
 # Media files (uploaded by users)
 MEDIA_URL = 'media/'
@@ -130,3 +130,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Настройки приложения
 VIDEO_PAGINATION_SIZE = 8
+
+# Настройки логирования действий пользователей
+LOG_DIR = BASE_DIR.parent / 'logs'
+LOG_FORMATS = ['txt', 'xml', 'json']  # Список форматов для логирования
