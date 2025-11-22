@@ -1,7 +1,59 @@
 from django.contrib import admin
 from django.utils.html import format_html
+from django.urls import reverse
+from urllib.parse import urlencode
 
-from .models import Video
+from .models import (
+    Video,
+    VideoRating,
+)
+
+
+@admin.register(VideoRating)
+class VideoRatingAdmin(admin.ModelAdmin):
+    """Административная панель для модели VideoRating"""
+    list_display = [
+        'video',
+        'user',
+        'rating_type',
+        'created_at',
+    ]
+    list_filter = [
+        'rating_type',
+        'video',
+        'created_at',
+    ]
+    search_fields = [
+        'video__title',
+        'user__username',
+    ]
+    readonly_fields = [
+        'video',
+        'user',
+        'rating_type',
+        'created_at',
+    ]
+    list_per_page = 25
+
+    def has_add_permission(
+        self,
+        request,
+    ) -> bool:
+        return False
+
+    def has_delete_permission(
+        self,
+        request,
+        obj=None,
+    ) -> bool:
+        return False
+
+    def has_change_permission(
+        self,
+        request,
+        obj=None,
+    ) -> bool:
+        return False
 
 
 @admin.register(Video)
@@ -12,8 +64,7 @@ class VideoAdmin(admin.ModelAdmin):
         'title',
         'display_topics',
         'is_hidden',
-        'likes_count_display',
-        'dislikes_count_display',
+        'ratings_link',
         'created_at',
     ]
     list_filter = [
@@ -25,8 +76,7 @@ class VideoAdmin(admin.ModelAdmin):
     readonly_fields = [
         'created_at',
         'updated_at',
-        'likes_count_display',
-        'dislikes_count_display',
+        'ratings_link',
     ]
     list_per_page = 10
     filter_horizontal = ['topics']
@@ -57,20 +107,37 @@ class VideoAdmin(admin.ModelAdmin):
 
     display_topics.short_description = 'Темы'
 
-    def likes_count_display(
+    def ratings_link(
         self,
         obj: Video,
-    ) -> int:
-        """Отображает количество лайков"""
-        return obj.likes_count
+    ) -> str:
+        """Создает ссылку на отфильтрованный список оценок"""
+        if not obj.pk:
+            return '-'
 
-    likes_count_display.short_description = 'Лайки'
+        url = (
+            reverse('admin:videos_videorating_changelist') +
+            '?' +
+            urlencode({'video__id__exact': obj.pk})
+        )
+        likes_count = obj.likes_count
+        dislikes_count = obj.dislikes_count
 
-    def dislikes_count_display(
-        self,
-        obj: Video,
-    ) -> int:
-        """Отображает количество дизлайков"""
-        return obj.dislikes_count
+        if likes_count == 0 and dislikes_count == 0:
+            return format_html(
+                '<span style="color: #999;">Нет оценок</span>'
+            )
 
-    dislikes_count_display.short_description = 'Дизлайки'
+        text_parts = []
+        if likes_count > 0:
+            text_parts.append(f'👍 ({likes_count})')
+        if dislikes_count > 0:
+            text_parts.append(f'👎 ({dislikes_count})')
+
+        return format_html(
+            '<a href="{}" style="text-decoration: underline;">{}</a>',
+            url,
+            ', '.join(text_parts),
+        )
+
+    ratings_link.short_description = 'Оценки'
